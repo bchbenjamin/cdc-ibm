@@ -5,6 +5,7 @@ from . import views
 app_name = "registrations"
 
 urlpatterns = [
+    path("favicon.ico", views.favicon, name="favicon"),
     path("", views.dashboard, name="dashboard"),
     path("import/", views.import_csv, name="import_csv"),
     path("import/<int:job_id>/", views.import_progress, name="import_progress"),

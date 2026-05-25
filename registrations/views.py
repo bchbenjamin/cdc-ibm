@@ -17,6 +17,12 @@ from .services import (
 )
 
 
+def favicon(request):
+    return redirect(
+        "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/event/default/24px.svg"
+    )
+
+
 @login_required
 def dashboard(request):
     total = Participant.objects.count()
