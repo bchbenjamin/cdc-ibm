@@ -1,4 +1,5 @@
 {
+  "buildCommand": "python manage.py collectstatic --noinput",
   "builds": [
     {
       "src": "cdc_portal/wsgi.py",
