@@ -74,11 +74,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "cdc_portal.wsgi.application"
 
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+database_sslmode = os.getenv("DATABASE_SSLMODE", "").strip().lower()
+
+ssl_require = False
+if database_sslmode in {"require", "true", "1", "yes"}:
+    ssl_require = True
+elif database_sslmode in {"disable", "false", "0", "no"}:
+    ssl_require = False
+elif "neon.tech" in DATABASE_URL and "sslmode=" not in DATABASE_URL:
+    ssl_require = True
+
 DATABASES = {
     "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        default=DATABASE_URL,
         conn_max_age=600,
         conn_health_checks=True,
+        ssl_require=ssl_require,
     )
 }
 

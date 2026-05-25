@@ -26,6 +26,8 @@ A Django-based FCFS event registration and lab allocation system built for serve
    ```bash
    cp .env.example .env
    ```
+   If you use Neon, ensure SSL is enabled via `DATABASE_SSLMODE=require` or by
+   appending `?sslmode=require` to `DATABASE_URL`.
 4. Run migrations:
    ```bash
    python manage.py migrate
@@ -54,6 +56,7 @@ Change these credentials in production.
 1. Create a Neon database and copy its connection string.
 2. In the Vercel project settings, set environment variables:
    - `DATABASE_URL`
+   - `DATABASE_SSLMODE=require` (recommended for Neon)
    - `DJANGO_SECRET_KEY`
    - `DJANGO_DEBUG=false`
    - `ALLOWED_HOSTS` (comma-separated, include your Vercel domain)
@@ -68,6 +71,7 @@ Change these credentials in production.
    python manage.py migrate
    ```
 5. Deploy. Vercel will use `vercel.json` and `cdc_portal/wsgi.py`.
+   Vercel will use `api/index.py` as the serverless entrypoint.
 
 ## Admin Access
 
