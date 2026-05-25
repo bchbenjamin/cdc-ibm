@@ -1,0 +1,18 @@
+{
+  "builds": [
+    {
+      "src": "cdc_portal/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.11",
+        "maxLambdaSize": "15mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "cdc_portal/wsgi.py"
+    }
+  ]
+}

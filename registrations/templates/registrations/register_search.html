@@ -1,0 +1,42 @@
+{% extends "registrations/base.html" %}
+{% block title %}Find Participant | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Find participant</h1>
+  <form method="get" class="form-inline">
+    <label class="field">
+      <span>Search by Sl # or name</span>
+      <input type="text" name="q" value="{{ query }}" placeholder="Type Sl # or candidate name">
+    </label>
+    <md-filled-button type="submit">Search</md-filled-button>
+  </form>
+</section>
+
+{% if query %}
+<section class="card">
+  <h2>Results</h2>
+  {% if results %}
+    <div class="list">
+      {% for participant in results %}
+      <div class="list-item">
+        <div>
+          <div class="list-title">{{ participant.candidate_full_name }}</div>
+          <div class="list-meta">Sl # {{ participant.sl_number }} · Zone {{ participant.zone }}</div>
+        </div>
+        <div class="list-actions">
+          {% if participant.registered_at %}
+            <span class="pill success">Registered</span>
+          {% else %}
+            <span class="pill warning">Pending</span>
+          {% endif %}
+          <a class="link-button" href="{% url 'registrations:register_detail' participant.id %}">Open</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No matching participants found.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

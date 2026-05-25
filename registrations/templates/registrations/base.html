@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CDC Registration{% endblock %}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script type="module" src="https://unpkg.com/@material/web@1.0.0/all.js"></script>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="brand">
+      <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/event/default/24px.svg" alt="">
+      <span>CDC Registration</span>
+    </div>
+    <nav class="nav-actions">
+      <a class="nav-link" href="{% url 'registrations:dashboard' %}">
+        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/space_dashboard/default/24px.svg" alt="">
+        Dashboard
+      </a>
+      <a class="nav-link" href="{% url 'registrations:import_csv' %}">
+        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">
+        Import
+      </a>
+      <a class="nav-link" href="{% url 'registrations:register_search' %}">
+        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/badge/default/24px.svg" alt="">
+        Register
+      </a>
+      <a class="nav-link" href="{% url 'registrations:export_csv' %}">
+        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/download/default/24px.svg" alt="">
+        Export
+      </a>
+      <a class="nav-link" href="{% url 'admin:index' %}">
+        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/admin_panel_settings/default/24px.svg" alt="">
+        Admin
+      </a>
+    </nav>
+    <div class="user-area">
+      {% if request.user.is_authenticated %}
+        <span class="user-chip">{{ request.user.username }}</span>
+        <form method="post" action="{% url 'logout' %}" class="nav-form">
+          {% csrf_token %}
+          <button type="submit" class="nav-button">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/logout/default/24px.svg" alt="">
+            Sign out
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="page">
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <div class="message message-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

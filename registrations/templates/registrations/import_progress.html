@@ -1,0 +1,24 @@
+{% extends "registrations/base.html" %}
+{% block title %}Import Progress | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Import progress</h1>
+  <div class="progress-stats">
+    <div>Processed {{ job.processed_count }} of {{ job.total_rows }} rows</div>
+    <div>Status: {{ job.status }}</div>
+  </div>
+  {% if job.last_error %}
+    <div class="message message-error">{{ job.last_error }}</div>
+  {% endif %}
+  {% if job.status != 'complete' %}
+    <form method="post" class="button-row">
+      {% csrf_token %}
+      <md-filled-button type="submit">Process next chunk</md-filled-button>
+    </form>
+  {% else %}
+    <div class="button-row">
+      <md-outlined-button type="button" onclick="location.href='{% url 'registrations:register_search' %}'">Go to registration</md-outlined-button>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

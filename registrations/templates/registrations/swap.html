@@ -1,0 +1,34 @@
+{% extends "registrations/base.html" %}
+{% block title %}Swap Assignment | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Lab at capacity</h1>
+  <p class="muted">Lab {{ full_lab_session.lab.name }} is full. Choose a participant to swap out and move them to a lab with space.</p>
+
+  {% if available_labs %}
+  <form method="post" action="{% url 'registrations:swap_registration' %}" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="participant_id" value="{{ participant.id }}">
+    <input type="hidden" name="full_lab_session_id" value="{{ full_lab_session.id }}">
+    <input type="hidden" name="present_absent" value="{{ present_absent }}">
+    <label class="field">
+      <span>Swap out participant</span>
+      {{ swap_form.swap_participant }}
+    </label>
+    <label class="field">
+      <span>Move swapped participant to</span>
+      {{ swap_form.target_lab }}
+    </label>
+    <div class="button-row">
+      <md-filled-button type="submit">Swap and register</md-filled-button>
+      <md-outlined-button type="button" onclick="location.href='{% url 'registrations:register_detail' participant.id %}'">Cancel</md-outlined-button>
+    </div>
+  </form>
+  {% else %}
+    <div class="message message-warning">No labs currently have available seats.</div>
+    <div class="button-row">
+      <md-outlined-button type="button" onclick="location.href='{% url 'registrations:register_detail' participant.id %}'">Cancel</md-outlined-button>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

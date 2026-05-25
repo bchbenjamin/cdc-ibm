@@ -1,0 +1,18 @@
+{% extends "registrations/base.html" %}
+{% block title %}Import CSV | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>CSV import</h1>
+  <p class="muted">Uploads are chunked to stay within serverless execution limits.</p>
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    <label class="field">
+      <span>CSV file</span>
+      <input type="file" name="csv_file" accept=".csv" required>
+    </label>
+    <div class="button-row">
+      <md-filled-button type="submit">Start import</md-filled-button>
+    </div>
+  </form>
+</section>
+{% endblock %}

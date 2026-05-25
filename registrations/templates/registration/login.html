@@ -1,0 +1,25 @@
+{% extends "registrations/base.html" %}
+{% block title %}Sign In | CDC Registration{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>Sign in</h1>
+  <p class="muted">Use your staff credentials to continue.</p>
+  {% if form.errors %}
+    <div class="message message-error">Invalid username or password.</div>
+  {% endif %}
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <label class="field">
+      <span>Username</span>
+      <input type="text" name="username" required autofocus>
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input type="password" name="password" required>
+    </label>
+    <div class="button-row">
+      <md-filled-button type="submit">Sign in</md-filled-button>
+    </div>
+  </form>
+</section>
+{% endblock %}

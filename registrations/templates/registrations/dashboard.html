@@ -1,0 +1,59 @@
+{% extends "registrations/base.html" %}
+{% block title %}Dashboard | CDC Registration{% endblock %}
+{% block content %}
+<section class="hero card">
+  <div>
+    <h1>Registration control</h1>
+    <p class="muted">Manage CSV imports, assign labs, and monitor session capacity.</p>
+  </div>
+  <div class="hero-actions">
+    <md-filled-button type="button" onclick="location.href='{% url 'registrations:register_search' %}'">Start registration</md-filled-button>
+    <md-outlined-button type="button" onclick="location.href='{% url 'registrations:import_csv' %}'">Import CSV</md-outlined-button>
+  </div>
+</section>
+
+<section class="metrics">
+  <div class="metric card">
+    <div class="metric-label">Total participants</div>
+    <div class="metric-value">{{ total }}</div>
+  </div>
+  <div class="metric card">
+    <div class="metric-label">Registered</div>
+    <div class="metric-value">{{ registered }}</div>
+  </div>
+  <div class="metric card">
+    <div class="metric-label">Pending</div>
+    <div class="metric-value">{{ pending }}</div>
+  </div>
+</section>
+
+{% if current_session %}
+<section class="card session-card">
+  <div class="session-header">
+    <div>
+      <h2>{{ current_session.label }}</h2>
+      <p class="muted">Start time {{ current_session.start_time }}</p>
+    </div>
+    <div class="metric-small">Assigned {{ current_session.assigned_count }} / {{ current_session.capacity }}</div>
+  </div>
+  <div class="lab-grid">
+    {% for lab_session in lab_status %}
+      {% widthratio lab_session.assigned_count lab_session.capacity 100 as percent %}
+      <div class="lab-card">
+        <div class="lab-title">{{ lab_session.lab.name }}</div>
+        <div class="lab-meta">{{ lab_session.assigned_count }} / {{ lab_session.capacity }}</div>
+        <div class="progress">
+          <div class="progress-bar" style="width: {{ percent }}%"></div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="card">
+  <h2>No sessions available</h2>
+  <p class="muted">Create the first session to start registering participants.</p>
+  <md-filled-button type="button" onclick="location.href='{% url 'registrations:create_session' %}'">Create session</md-filled-button>
+</section>
+{% endif %}
+{% endblock %}

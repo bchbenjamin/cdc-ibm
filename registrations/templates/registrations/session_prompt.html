@@ -1,0 +1,24 @@
+{% extends "registrations/base.html" %}
+{% block title %}New Session | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>New session required</h1>
+  <p class="muted">The current session is at capacity. Create the next session to continue registering participants.</p>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="next_url" value="{{ next_url }}">
+    <label class="field">
+      <span>Session label</span>
+      {{ form.label }}
+    </label>
+    <label class="field">
+      <span>Start time</span>
+      {{ form.start_time }}
+    </label>
+    <div class="button-row">
+      <md-filled-button type="submit">Create session</md-filled-button>
+      <md-outlined-button type="button" onclick="location.href='{{ next_url }}'">Cancel</md-outlined-button>
+    </div>
+  </form>
+</section>
+{% endblock %}

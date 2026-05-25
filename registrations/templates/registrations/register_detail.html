@@ -1,0 +1,70 @@
+{% extends "registrations/base.html" %}
+{% block title %}Participant | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Participant detail</h1>
+  <div class="detail-grid">
+    <div>
+      <div class="detail-label">Sl #</div>
+      <div class="detail-value">{{ participant.sl_number }}</div>
+    </div>
+    <div>
+      <div class="detail-label">Zone</div>
+      <div class="detail-value">{{ participant.zone }}</div>
+    </div>
+    <div>
+      <div class="detail-label">Candidate full name</div>
+      <div class="detail-value">{{ participant.candidate_full_name }}</div>
+    </div>
+  </div>
+</section>
+
+{% if already_registered %}
+<section class="card">
+  <h2>Registration status</h2>
+  <div class="pill success">Registered</div>
+  <div class="detail-grid">
+    <div>
+      <div class="detail-label">Lab</div>
+      <div class="detail-value">{{ participant.lab.name }}</div>
+    </div>
+    <div>
+      <div class="detail-label">Session</div>
+      <div class="detail-value">{{ participant.session.label }}</div>
+    </div>
+    <div>
+      <div class="detail-label">Registered at</div>
+      <div class="detail-value">{{ participant.registered_at }}</div>
+    </div>
+  </div>
+</section>
+{% else %}
+<section class="card">
+  <h2>Register participant</h2>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <label class="field">
+      <span>Present or absent</span>
+      <select name="present_absent" required>
+        <option value="present">Present</option>
+        <option value="absent">Absent</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Lab override (optional)</span>
+      <select name="lab_override">
+        <option value="">Auto assign</option>
+        {% for lab in labs %}
+          <option value="{{ lab.id }}">{{ lab.name }}</option>
+        {% endfor %}
+      </select>
+      <small class="muted">Full labs can be overridden with a swap.</small>
+    </label>
+    <div class="button-row">
+      <md-filled-button type="submit">Register</md-filled-button>
+      <md-outlined-button type="button" onclick="location.href='{% url 'registrations:register_search' %}'">Back</md-outlined-button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
