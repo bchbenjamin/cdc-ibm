@@ -5,14 +5,14 @@ A Django-based FCFS event registration and lab allocation system built for serve
 ## Key Features
 
 - Concurrent-safe lab allocation with database-level locking.
-- CSV import and export handled by pandas with chunked processing.
+- CSV import and export handled with chunked processing.
 - FCFS lab assignment across A1-A5 and A11-A15 with 20 seats each.
 - Session capacity enforcement with prompts for new sessions.
 - Admin-only audit logs and CSV management.
 
 ## Requirements
 
-- Python 3.11 or 3.12 (pandas wheels are not available for Python 3.14 yet)
+- Python 3.11 or 3.12
 - PostgreSQL (Neon recommended for production)
 
 ## Local Setup

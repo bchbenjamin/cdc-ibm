@@ -1,3 +1,5 @@
+import csv
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import F, Q
@@ -8,7 +10,7 @@ from django.urls import reverse
 from .forms import CSVUploadForm, RegistrationForm, SessionForm, SwapForm
 from .models import ImportJob, Lab, LabSession, Participant, Session
 from .services import (
-    build_export_dataframe,
+    build_export_rows,
     count_csv_rows,
     process_import_chunk,
     register_participant_auto,
@@ -290,8 +292,19 @@ def swap_registration_view(request):
 
 @login_required
 def export_csv(request):
-    df = build_export_dataframe()
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = "attachment; filename=registrations_export.csv"
-    df.to_csv(response, index=False)
+    fieldnames = [
+        "SL no",
+        "Sl #",
+        "Zone",
+        "Candidate Full Name",
+        "present/absent",
+        "lab alloted",
+        "session alloted",
+        "signature",
+    ]
+    writer = csv.DictWriter(response, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(build_export_rows())
     return response

@@ -1,7 +1,7 @@
+import csv
 import io
 import time
 
-import pandas as pd
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -18,18 +18,15 @@ def count_csv_rows(csv_text):
 
 def read_next_chunk(csv_text, start_row, chunk_size):
     csv_io = io.StringIO(csv_text)
-    skiprows = range(1, start_row + 1) if start_row > 0 else None
-    reader = pd.read_csv(
-        csv_io,
-        dtype=str,
-        keep_default_na=False,
-        skiprows=skiprows,
-        chunksize=chunk_size,
-    )
-    try:
-        return next(reader)
-    except StopIteration:
-        return None
+    reader = csv.DictReader(csv_io)
+    rows = []
+    for index, row in enumerate(reader):
+        if index < start_row:
+            continue
+        rows.append({key: value or "" for key, value in row.items() if key is not None})
+        if len(rows) >= chunk_size:
+            break
+    return reader.fieldnames or [], rows
 
 
 def process_import_chunk(job, chunk_size=500, time_budget_seconds=7):
@@ -40,21 +37,19 @@ def process_import_chunk(job, chunk_size=500, time_budget_seconds=7):
     job.save(update_fields=["status", "last_error"])
 
     while time.monotonic() - start < time_budget_seconds:
-        df = read_next_chunk(job.csv_text, job.next_row, chunk_size)
-        if df is None or df.empty:
+        fieldnames, rows = read_next_chunk(job.csv_text, job.next_row, chunk_size)
+        if not rows:
             job.status = ImportJob.Status.COMPLETE
             job.save(update_fields=["status"])
             return processed_total, True
 
-        missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+        missing = [col for col in REQUIRED_COLUMNS if col not in fieldnames]
         if missing:
             job.status = ImportJob.Status.FAILED
             job.last_error = f"Missing columns: {', '.join(missing)}"
             job.save(update_fields=["status", "last_error"])
             return 0, False
 
-        df = df.drop(columns=["SL no"], errors="ignore")
-        rows = df.to_dict(orient="records")
         participants = []
         for row in rows:
             participants.append(
@@ -212,7 +207,7 @@ def swap_registration(participant_id, user, present_absent, full_lab_session_id,
         return {"status": "ok", "participant": participant, "session": session}
 
 
-def build_export_dataframe():
+def build_export_rows():
     rows = []
     participants = Participant.objects.select_related("lab", "session").order_by("id")
     for index, participant in enumerate(participants, start=1):
@@ -228,19 +223,7 @@ def build_export_dataframe():
                 "signature": "",
             }
         )
-    return pd.DataFrame(
-        rows,
-        columns=[
-            "SL no",
-            "Sl #",
-            "Zone",
-            "Candidate Full Name",
-            "present/absent",
-            "lab alloted",
-            "session alloted",
-            "signature",
-        ],
-    )
+    return rows
 
 
 def _assign_participant(participant, user, present_absent, session, lab):

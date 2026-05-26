@@ -76,13 +76,21 @@ WSGI_APPLICATION = "cdc_portal.wsgi.application"
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 database_sslmode = os.getenv("DATABASE_SSLMODE", "").strip().lower()
+database_scheme = urlparse(DATABASE_URL).scheme
 
 ssl_require = False
-if database_sslmode in {"require", "true", "1", "yes"}:
+if (
+    database_scheme in {"postgres", "postgresql"}
+    and database_sslmode in {"require", "true", "1", "yes"}
+):
     ssl_require = True
 elif database_sslmode in {"disable", "false", "0", "no"}:
     ssl_require = False
-elif "neon.tech" in DATABASE_URL and "sslmode=" not in DATABASE_URL:
+elif (
+    database_scheme in {"postgres", "postgresql"}
+    and "neon.tech" in DATABASE_URL
+    and "sslmode=" not in DATABASE_URL
+):
     ssl_require = True
 
 DATABASES = {
