@@ -1,0 +1,46 @@
+{% extends "registrations/base.html" %}
+{% block title %}{{ lab.name }} Lab Roster | CDC Registration{% endblock %}
+{% block content %}
+<section class="hero card">
+  <div>
+    <h1>{{ lab.name }} lab roster</h1>
+    <p class="muted">Registered participants allocated to this lab.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Batches</h2>
+  <div class="lab-grid">
+    {% for lab_session in sessions %}
+      <div class="lab-card">
+        <div class="lab-title">{{ lab_session.session.label }}</div>
+        <div class="lab-meta">{{ lab_session.session.start_time }} · {{ lab_session.assigned_count }} / {{ lab_session.capacity }}</div>
+      </div>
+    {% empty %}
+      <p class="muted">No batches are available for this lab yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Allocated students</h2>
+  {% if participants %}
+    <div class="list">
+      {% for participant in participants %}
+        <div class="list-item">
+          <div>
+            <div class="list-title">{{ participant.candidate_full_name }}</div>
+            <div class="list-meta">
+              Regular SL no {{ participant.regular_sl_number|default:"-" }} · Sl # {{ participant.sl_number }} · Zone {{ participant.zone }}
+              · {{ participant.session.label }} at {{ participant.session.start_time }}
+            </div>
+          </div>
+          <span class="pill success">{{ participant.present_absent|title }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No students are allocated to this lab yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

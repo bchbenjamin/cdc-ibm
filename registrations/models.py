@@ -34,6 +34,15 @@ class LabSession(models.Model):
         return f"{self.lab.name} - {self.session.label}"
 
 
+class LabCoordinator(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    lab = models.ForeignKey(Lab, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.lab}"
+
+
 class Participant(models.Model):
     PRESENT = "present"
     ABSENT = "absent"
@@ -42,6 +51,7 @@ class Participant(models.Model):
         (ABSENT, "Absent"),
     ]
 
+    regular_sl_number = models.CharField(max_length=50, blank=True, db_index=True)
     sl_number = models.CharField(max_length=50, db_index=True)
     zone = models.CharField(max_length=100, blank=True)
     candidate_full_name = models.TextField()
@@ -62,6 +72,7 @@ class Participant(models.Model):
         permissions = [
             ("register_participant", "Can register participants"),
             ("change_participant_lab", "Can change participant lab allocation"),
+            ("undo_registration", "Can undo participant registration"),
         ]
 
 
@@ -69,6 +80,7 @@ class AuditLog(models.Model):
     class Action(models.TextChoices):
         REGISTERED = "registered", "Registered"
         SWAP = "swap", "Swap"
+        UNREGISTERED = "unregistered", "Unregistered"
 
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
     performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)

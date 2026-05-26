@@ -5,6 +5,10 @@
   <h1>Participant detail</h1>
   <div class="detail-grid">
     <div>
+      <div class="detail-label">Regular SL no</div>
+      <div class="detail-value">{{ participant.regular_sl_number|default:"-" }}</div>
+    </div>
+    <div>
       <div class="detail-label">Sl #</div>
       <div class="detail-value">{{ participant.sl_number }}</div>
     </div>
@@ -33,6 +37,10 @@
       <div class="detail-value">{{ participant.session.label }}</div>
     </div>
     <div>
+      <div class="detail-label">Batch timing</div>
+      <div class="detail-value">{{ participant.session.start_time }}</div>
+    </div>
+    <div>
       <div class="detail-label">Registered at</div>
       <div class="detail-value">{{ participant.registered_at }}</div>
     </div>
@@ -53,6 +61,17 @@
       <button class="button button-filled" type="submit">Update lab</button>
       <a class="button button-outlined" href="{% url 'registrations:register_search' %}">Back</a>
     </div>
+  </form>
+</section>
+{% endif %}
+{% if can_undo_registration %}
+<section class="card danger-card">
+  <h2>Undo registration</h2>
+  <p class="muted">This clears the assigned lab, session, presence status, and registration timestamp.</p>
+  <form method="post" class="button-row">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="undo_registration">
+    <button class="button button-danger" type="submit">Undo registration</button>
   </form>
 </section>
 {% endif %}

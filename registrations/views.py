@@ -1,7 +1,7 @@
 import csv
 from functools import wraps
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import permission_required
@@ -21,6 +21,7 @@ from .services import (
     register_participant_with_lab_override,
     swap_registered_lab,
     swap_registration,
+    undo_registration,
 )
 
 
@@ -36,10 +37,43 @@ def _has_lab_change_access(user):
     )
 
 
+def _has_undo_registration_access(user):
+    return user.is_active and (
+        user.is_staff or user.has_perm("registrations.undo_registration")
+    )
+
+
+def _lab_coordinator_lab(user):
+    if not user.is_authenticated:
+        return None
+    try:
+        return user.labcoordinator.lab
+    except ObjectDoesNotExist:
+        return None
+
+
+def _has_lab_coordinator_access(user):
+    return user.is_active and _lab_coordinator_lab(user) is not None
+
+
+def _has_portal_access(user):
+    return _has_registration_access(user) or _has_lab_coordinator_access(user)
+
+
 def registration_access_required(view_func):
     @wraps(view_func)
     def wrapped(request, *args, **kwargs):
         if not _has_registration_access(request.user):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
+
+
+def portal_access_required(view_func):
+    @wraps(view_func)
+    def wrapped(request, *args, **kwargs):
+        if not _has_portal_access(request.user):
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
 
@@ -53,8 +87,11 @@ def favicon(request):
 
 
 @login_required
-@registration_access_required
+@portal_access_required
 def dashboard(request):
+    if _has_lab_coordinator_access(request.user) and not _has_registration_access(request.user):
+        return redirect("registrations:lab_dashboard")
+
     total = Participant.objects.count()
     registered = Participant.objects.filter(registered_at__isnull=False).count()
     pending = total - registered
@@ -131,7 +168,9 @@ def register_search(request):
     if query:
         results = (
             Participant.objects.filter(
-                Q(sl_number__icontains=query) | Q(candidate_full_name__icontains=query)
+                Q(sl_number__icontains=query)
+                | Q(regular_sl_number__icontains=query)
+                | Q(candidate_full_name__icontains=query)
             )
             .order_by("sl_number")
             .all()[:50]
@@ -213,6 +252,16 @@ def register_detail(request, participant_id):
                             "registrations:register_detail", participant_id=participant.id
                         )
                 messages.error(request, "Unable to complete lab swap.")
+            elif action == "undo_registration":
+                if not _has_undo_registration_access(request.user):
+                    raise PermissionDenied
+                result = undo_registration(participant.id, request.user)
+                if result["status"] == "ok":
+                    messages.success(request, "Registration undone.")
+                    return redirect(
+                        "registrations:register_detail", participant_id=participant.id
+                    )
+                messages.error(request, "Participant is not currently registered.")
 
         return render(
             request,
@@ -223,6 +272,7 @@ def register_detail(request, participant_id):
                 "labs": labs,
                 "lab_change_form": LabChangeForm(current_lab=participant.lab),
                 "can_change_lab": _has_lab_change_access(request.user),
+                "can_undo_registration": _has_undo_registration_access(request.user),
             },
         )
 
@@ -401,15 +451,43 @@ def export_csv(request):
     response["Content-Disposition"] = "attachment; filename=registrations_export.csv"
     fieldnames = [
         "SL no",
+        "Regular SL no",
         "Sl #",
         "Zone",
         "Candidate Full Name",
         "present/absent",
         "lab alloted",
         "session alloted",
+        "batch timing",
         "signature",
     ]
     writer = csv.DictWriter(response, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(build_export_rows())
     return response
+
+
+@login_required
+@portal_access_required
+def lab_dashboard(request):
+    lab = _lab_coordinator_lab(request.user)
+    if lab is None:
+        if _has_registration_access(request.user):
+            return redirect("registrations:dashboard")
+        raise PermissionDenied
+
+    participants = (
+        Participant.objects.filter(lab=lab, registered_at__isnull=False)
+        .select_related("session")
+        .order_by("session__start_time", "regular_sl_number", "sl_number")
+    )
+    sessions = (
+        LabSession.objects.filter(lab=lab)
+        .select_related("session")
+        .order_by("session__start_time")
+    )
+    return render(
+        request,
+        "registrations/lab_dashboard.html",
+        {"lab": lab, "participants": participants, "sessions": sessions},
+    )

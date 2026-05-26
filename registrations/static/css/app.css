@@ -128,6 +128,16 @@ textarea {
   background: var(--state-hover);
 }
 
+.button-danger {
+  color: var(--md-sys-color-on-error);
+  background: var(--md-sys-color-error);
+  box-shadow: var(--elevation-1);
+}
+
+.button-danger:hover {
+  box-shadow: var(--elevation-2);
+}
+
 .button-compact {
   min-height: 38px;
   min-width: 64px;
@@ -575,6 +585,10 @@ p:last-child {
   margin: 44px auto;
   background: var(--md-sys-color-surface-container-high);
   box-shadow: var(--elevation-3);
+}
+
+.danger-card {
+  border-color: rgba(255, 180, 171, 0.34);
 }
 
 @media (max-width: 900px) {

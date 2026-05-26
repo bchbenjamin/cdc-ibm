@@ -24,6 +24,12 @@
             Dashboard
           </a>
         {% endif %}
+        {% if request.user.labcoordinator %}
+          <a class="nav-link" href="{% url 'registrations:lab_dashboard' %}">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/science/default/24px.svg" alt="">
+            My Lab
+          </a>
+        {% endif %}
         {% if perms.registrations.add_importjob %}
           <a class="nav-link" href="{% url 'registrations:import_csv' %}">
             <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">

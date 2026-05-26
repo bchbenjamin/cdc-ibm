@@ -7,12 +7,13 @@ from django.db.models import F
 from django.db.models.signals import post_delete, post_migrate, post_save
 from django.dispatch import receiver
 
-from .models import Lab, LabSession, Participant, Session
+from .models import Lab, LabCoordinator, LabSession, Participant, Session
 
 LAB_NAMES = ["A1", "A2", "A3", "A4", "A5", "A11", "A12", "A13", "A14", "A15"]
 DEFAULT_SESSION_LABEL = "Session 1"
 DEFAULT_SESSION_TIME = time(9, 0)
 REGISTRATION_STAFF_GROUP = "Registration staff"
+LAB_COORDINATOR_GROUP = "Lab coordinator"
 
 
 @receiver(post_migrate)
@@ -35,12 +36,23 @@ def seed_defaults(sender, **kwargs):
     group, _ = Group.objects.get_or_create(name=REGISTRATION_STAFF_GROUP)
     permissions = Permission.objects.filter(
         content_type=participant_type,
-        codename__in=["register_participant", "change_participant_lab"],
+        codename__in=[
+            "register_participant",
+            "change_participant_lab",
+            "undo_registration",
+        ],
     ) | Permission.objects.filter(
         content_type=session_type,
         codename="add_session",
     )
     group.permissions.add(*permissions)
+    Group.objects.get_or_create(name=LAB_COORDINATOR_GROUP)
+
+
+@receiver(post_save, sender=LabCoordinator)
+def add_lab_coordinator_group(sender, instance, **kwargs):
+    group, _ = Group.objects.get_or_create(name=LAB_COORDINATOR_GROUP)
+    instance.user.groups.add(group)
 
 
 @receiver(post_save, sender=Session)

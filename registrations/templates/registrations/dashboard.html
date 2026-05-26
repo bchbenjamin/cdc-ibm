@@ -8,7 +8,9 @@
   </div>
   <div class="hero-actions">
     <a class="button button-filled" href="{% url 'registrations:register_search' %}">Start registration</a>
-    <a class="button button-outlined" href="{% url 'registrations:import_csv' %}">Import CSV</a>
+    {% if perms.registrations.add_importjob %}
+      <a class="button button-outlined" href="{% url 'registrations:import_csv' %}">Import CSV</a>
+    {% endif %}
   </div>
 </section>
 
@@ -41,7 +43,9 @@
       {% widthratio lab_session.assigned_count lab_session.capacity 100 as percent %}
       <div class="lab-card">
         <div class="lab-title">{{ lab_session.lab.name }}</div>
-        <div class="lab-meta">{{ lab_session.assigned_count }} / {{ lab_session.capacity }}</div>
+        <div class="lab-meta">
+          {{ lab_session.assigned_count }} / {{ lab_session.capacity }} · {{ lab_session.session.label }} at {{ lab_session.session.start_time }}
+        </div>
         <div class="progress">
           <div class="progress-bar" style="width: {{ percent }}%"></div>
         </div>

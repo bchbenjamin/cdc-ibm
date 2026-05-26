@@ -5,8 +5,8 @@
   <h1>Find participant</h1>
   <form method="get" class="form-inline">
     <label class="field">
-      <span>Search by Sl # or name</span>
-      <input type="text" name="q" value="{{ query }}" placeholder="Type Sl # or candidate name">
+      <span>Search by SL no, Sl #, or name</span>
+      <input type="text" name="q" value="{{ query }}" placeholder="Type SL no, Sl #, or candidate name">
     </label>
     <button class="button button-filled" type="submit">Search</button>
   </form>
@@ -21,7 +21,12 @@
       <div class="list-item">
         <div>
           <div class="list-title">{{ participant.candidate_full_name }}</div>
-          <div class="list-meta">Sl # {{ participant.sl_number }} · Zone {{ participant.zone }}</div>
+          <div class="list-meta">
+            Regular SL no {{ participant.regular_sl_number|default:"-" }} · Sl # {{ participant.sl_number }} · Zone {{ participant.zone }}
+            {% if participant.registered_at %}
+              · Lab {{ participant.lab.name }} · {{ participant.session.label }} at {{ participant.session.start_time }}
+            {% endif %}
+          </div>
         </div>
         <div class="list-actions">
           {% if participant.registered_at %}

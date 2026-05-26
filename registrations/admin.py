@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import AuditLog, ImportJob, Lab, LabSession, Participant, Session
+from .models import AuditLog, ImportJob, Lab, LabCoordinator, LabSession, Participant, Session
 from .services import count_csv_rows, process_import_chunk
 
 
@@ -71,6 +71,7 @@ class ImportJobAdmin(admin.ModelAdmin):
 @admin.register(Lab)
 class LabAdmin(admin.ModelAdmin):
     list_display = ("name", "sort_order")
+    search_fields = ("name",)
     ordering = ("sort_order",)
 
 
@@ -87,10 +88,25 @@ class LabSessionAdmin(admin.ModelAdmin):
     ordering = ("session", "lab__sort_order")
 
 
+@admin.register(LabCoordinator)
+class LabCoordinatorAdmin(admin.ModelAdmin):
+    list_display = ("user", "lab", "created_at")
+    list_filter = ("lab",)
+    search_fields = ("user__username", "user__first_name", "user__last_name", "user__email")
+    autocomplete_fields = ("user", "lab")
+
+
 @admin.register(Participant)
 class ParticipantAdmin(admin.ModelAdmin):
-    list_display = ("sl_number", "candidate_full_name", "zone", "lab", "session")
-    search_fields = ("sl_number", "candidate_full_name")
+    list_display = (
+        "regular_sl_number",
+        "sl_number",
+        "candidate_full_name",
+        "zone",
+        "lab",
+        "session",
+    )
+    search_fields = ("regular_sl_number", "sl_number", "candidate_full_name")
     list_filter = ("session", "lab")
 
 
