@@ -211,7 +211,7 @@ def swap_registration(participant_id, user, present_absent, full_lab_session_id,
 def change_registered_lab(participant_id, target_lab_id, user):
     with transaction.atomic():
         participant = (
-            Participant.objects.select_for_update()
+            Participant.objects.select_for_update(of=("self",))
             .select_related("lab", "session")
             .get(pk=participant_id)
         )
@@ -254,7 +254,7 @@ def change_registered_lab(participant_id, target_lab_id, user):
 def swap_registered_lab(participant_id, target_lab_id, swap_participant_id, user):
     with transaction.atomic():
         participant = (
-            Participant.objects.select_for_update()
+            Participant.objects.select_for_update(of=("self",))
             .select_related("lab", "session")
             .get(pk=participant_id)
         )
@@ -297,7 +297,7 @@ def swap_registered_lab(participant_id, target_lab_id, swap_participant_id, user
 def undo_registration(participant_id, user):
     with transaction.atomic():
         participant = (
-            Participant.objects.select_for_update()
+            Participant.objects.select_for_update(of=("self",))
             .select_related("lab", "session")
             .get(pk=participant_id)
         )
