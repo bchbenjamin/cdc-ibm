@@ -38,6 +38,24 @@
     </div>
   </div>
 </section>
+{% if perms.registrations.change_participant_lab %}
+<section class="card">
+  <h2>Change lab allocation</h2>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="change_lab">
+    <label class="field">
+      <span>Move to lab</span>
+      {{ lab_change_form.target_lab }}
+      <small class="muted">If the target lab is full, choose someone from that lab to swap with.</small>
+    </label>
+    <div class="button-row">
+      <button class="button button-filled" type="submit">Update lab</button>
+      <a class="button button-outlined" href="{% url 'registrations:register_search' %}">Back</a>
+    </div>
+  </form>
+</section>
+{% endif %}
 {% else %}
 <section class="card">
   <h2>Register participant</h2>

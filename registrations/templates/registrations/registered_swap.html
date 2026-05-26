@@ -1,0 +1,25 @@
+{% extends "registrations/base.html" %}
+{% block title %}Swap Lab Allocation | CDC Registration{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Target lab is full</h1>
+  <p class="muted">
+    {{ target_lab.name }} is at capacity. Choose a registered participant from that lab to swap with
+    {{ participant.candidate_full_name }}.
+  </p>
+  <form method="post" action="{% url 'registrations:register_detail' participant.id %}" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="swap_registered_lab">
+    <input type="hidden" name="target_lab_id" value="{{ target_lab.id }}">
+    <input type="hidden" name="target_lab" value="{{ target_lab.id }}">
+    <label class="field">
+      <span>Swap with</span>
+      {{ swap_form.swap_participant }}
+    </label>
+    <div class="button-row">
+      <button class="button button-filled" type="submit">Swap labs</button>
+      <a class="button button-outlined" href="{% url 'registrations:register_detail' participant.id %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

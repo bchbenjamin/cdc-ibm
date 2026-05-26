@@ -22,22 +22,28 @@
           <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/space_dashboard/default/24px.svg" alt="">
           Dashboard
         </a>
-        <a class="nav-link" href="{% url 'registrations:import_csv' %}">
-          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">
-          Import
-        </a>
+        {% if perms.registrations.add_importjob %}
+          <a class="nav-link" href="{% url 'registrations:import_csv' %}">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">
+            Import
+          </a>
+        {% endif %}
         <a class="nav-link" href="{% url 'registrations:register_search' %}">
           <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/badge/default/24px.svg" alt="">
           Register
         </a>
-        <a class="nav-link" href="{% url 'registrations:export_csv' %}">
-          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/download/default/24px.svg" alt="">
-          Export
-        </a>
-        <a class="nav-link" href="{% url 'admin:index' %}">
-          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/admin_panel_settings/default/24px.svg" alt="">
-          Admin
-        </a>
+        {% if perms.registrations.view_participant %}
+          <a class="nav-link" href="{% url 'registrations:export_csv' %}">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/download/default/24px.svg" alt="">
+            Export
+          </a>
+        {% endif %}
+        {% if request.user.is_staff %}
+          <a class="nav-link" href="{% url 'admin:index' %}">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/admin_panel_settings/default/24px.svg" alt="">
+            Admin
+          </a>
+        {% endif %}
       </nav>
     {% endif %}
     <div class="user-area">

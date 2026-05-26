@@ -207,6 +207,92 @@ def swap_registration(participant_id, user, present_absent, full_lab_session_id,
         return {"status": "ok", "participant": participant, "session": session}
 
 
+def change_registered_lab(participant_id, target_lab_id, user):
+    with transaction.atomic():
+        participant = (
+            Participant.objects.select_for_update()
+            .select_related("lab", "session")
+            .get(pk=participant_id)
+        )
+        if not participant.registered_at or not participant.session_id or not participant.lab_id:
+            return {"status": "not_registered", "participant": participant}
+        if participant.lab_id == target_lab_id:
+            return {"status": "same_lab", "participant": participant}
+
+        try:
+            current_lab_session = LabSession.objects.select_for_update().get(
+                session=participant.session, lab=participant.lab
+            )
+            target_lab_session = LabSession.objects.select_for_update().get(
+                session=participant.session, lab_id=target_lab_id
+            )
+        except LabSession.DoesNotExist:
+            return {"status": "invalid_lab", "participant": participant}
+
+        if target_lab_session.assigned_count >= target_lab_session.capacity:
+            return {
+                "status": "target_lab_full",
+                "participant": participant,
+                "target_lab_session": target_lab_session,
+            }
+
+        current_lab_session.assigned_count = max(current_lab_session.assigned_count - 1, 0)
+        current_lab_session.save(update_fields=["assigned_count"])
+        target_lab_session.assigned_count += 1
+        target_lab_session.save(update_fields=["assigned_count"])
+
+        participant.lab = target_lab_session.lab
+        participant.registered_by = user
+        participant.save(update_fields=["lab", "registered_by"])
+        AuditLog.objects.create(
+            participant=participant, performed_by=user, action=AuditLog.Action.SWAP
+        )
+        return {"status": "ok", "participant": participant}
+
+
+def swap_registered_lab(participant_id, target_lab_id, swap_participant_id, user):
+    with transaction.atomic():
+        participant = (
+            Participant.objects.select_for_update()
+            .select_related("lab", "session")
+            .get(pk=participant_id)
+        )
+        if not participant.registered_at or not participant.session_id or not participant.lab_id:
+            return {"status": "not_registered", "participant": participant}
+        if participant.lab_id == target_lab_id:
+            return {"status": "same_lab", "participant": participant}
+
+        try:
+            swap_participant = Participant.objects.select_for_update().get(
+                pk=swap_participant_id,
+                session=participant.session,
+                lab_id=target_lab_id,
+                registered_at__isnull=False,
+            )
+        except Participant.DoesNotExist:
+            return {"status": "invalid_swap_participant", "participant": participant}
+
+        original_lab = participant.lab
+        participant.lab = swap_participant.lab
+        participant.registered_by = user
+        participant.save(update_fields=["lab", "registered_by"])
+
+        swap_participant.lab = original_lab
+        swap_participant.save(update_fields=["lab"])
+
+        AuditLog.objects.create(
+            participant=participant, performed_by=user, action=AuditLog.Action.SWAP
+        )
+        AuditLog.objects.create(
+            participant=swap_participant, performed_by=user, action=AuditLog.Action.SWAP
+        )
+        return {
+            "status": "ok",
+            "participant": participant,
+            "swap_participant": swap_participant,
+        }
+
+
 def build_export_rows():
     rows = []
     participants = Participant.objects.select_related("lab", "session").order_by("id")

@@ -1,20 +1,24 @@
 import csv
 
+from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import permission_required
 from django.db.models import F, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .forms import CSVUploadForm, RegistrationForm, SessionForm, SwapForm
+from .forms import CSVUploadForm, LabChangeForm, RegistrationForm, SessionForm, SwapForm
 from .models import ImportJob, Lab, LabSession, Participant, Session
 from .services import (
     build_export_rows,
+    change_registered_lab,
     count_csv_rows,
     process_import_chunk,
     register_participant_auto,
     register_participant_with_lab_override,
+    swap_registered_lab,
     swap_registration,
 )
 
@@ -26,6 +30,7 @@ def favicon(request):
 
 
 @login_required
+@permission_required("registrations.register_participant", raise_exception=True)
 def dashboard(request):
     total = Participant.objects.count()
     registered = Participant.objects.filter(registered_at__isnull=False).count()
@@ -50,6 +55,7 @@ def dashboard(request):
 
 
 @login_required
+@permission_required("registrations.add_importjob", raise_exception=True)
 def import_csv(request):
     if request.method == "POST":
         form = CSVUploadForm(request.POST, request.FILES)
@@ -77,6 +83,7 @@ def import_csv(request):
 
 
 @login_required
+@permission_required("registrations.add_importjob", raise_exception=True)
 def import_progress(request, job_id):
     job = get_object_or_404(ImportJob, pk=job_id)
     if request.method == "POST":
@@ -94,6 +101,7 @@ def import_progress(request, job_id):
 
 
 @login_required
+@permission_required("registrations.register_participant", raise_exception=True)
 def register_search(request):
     query = request.GET.get("q", "").strip()
     results = []
@@ -113,15 +121,85 @@ def register_search(request):
 
 
 @login_required
+@permission_required("registrations.register_participant", raise_exception=True)
 def register_detail(request, participant_id):
     participant = get_object_or_404(Participant, pk=participant_id)
     labs = Lab.objects.order_by("sort_order")
 
     if participant.registered_at:
+        if request.method == "POST":
+            action = request.POST.get("action")
+            if action == "change_lab":
+                if not request.user.has_perm("registrations.change_participant_lab"):
+                    raise PermissionDenied
+                form = LabChangeForm(request.POST, current_lab=participant.lab)
+                if form.is_valid():
+                    target_lab = form.cleaned_data["target_lab"]
+                    result = change_registered_lab(participant.id, target_lab.id, request.user)
+                    if result["status"] == "ok":
+                        messages.success(request, "Lab allocation updated.")
+                        return redirect(
+                            "registrations:register_detail", participant_id=participant.id
+                        )
+                    if result["status"] == "target_lab_full":
+                        target_lab_session = result["target_lab_session"]
+                        swap_participants = Participant.objects.filter(
+                            lab=target_lab_session.lab,
+                            session=participant.session,
+                            registered_at__isnull=False,
+                        ).order_by("candidate_full_name")
+                        swap_form = SwapForm(
+                            swap_participant_queryset=swap_participants,
+                            target_lab_queryset=Lab.objects.filter(pk=target_lab.id),
+                        )
+                        return render(
+                            request,
+                            "registrations/registered_swap.html",
+                            {
+                                "participant": participant,
+                                "target_lab": target_lab,
+                                "swap_form": swap_form,
+                            },
+                        )
+                    messages.error(request, "Unable to update lab allocation.")
+            elif action == "swap_registered_lab":
+                if not request.user.has_perm("registrations.change_participant_lab"):
+                    raise PermissionDenied
+                target_lab = get_object_or_404(Lab, pk=request.POST.get("target_lab_id"))
+                swap_participants = Participant.objects.filter(
+                    lab=target_lab,
+                    session=participant.session,
+                    registered_at__isnull=False,
+                ).order_by("candidate_full_name")
+                swap_form = SwapForm(
+                    request.POST,
+                    swap_participant_queryset=swap_participants,
+                    target_lab_queryset=Lab.objects.filter(pk=target_lab.id),
+                )
+                if swap_form.is_valid():
+                    swap_participant = swap_form.cleaned_data["swap_participant"]
+                    result = swap_registered_lab(
+                        participant.id,
+                        target_lab.id,
+                        swap_participant.id,
+                        request.user,
+                    )
+                    if result["status"] == "ok":
+                        messages.success(request, "Lab allocation swapped.")
+                        return redirect(
+                            "registrations:register_detail", participant_id=participant.id
+                        )
+                messages.error(request, "Unable to complete lab swap.")
+
         return render(
             request,
             "registrations/register_detail.html",
-            {"participant": participant, "already_registered": True, "labs": labs},
+            {
+                "participant": participant,
+                "already_registered": True,
+                "labs": labs,
+                "lab_change_form": LabChangeForm(current_lab=participant.lab),
+            },
         )
 
     if request.method == "POST":
@@ -203,6 +281,7 @@ def register_detail(request, participant_id):
 
 
 @login_required
+@permission_required("registrations.add_session", raise_exception=True)
 def create_session(request):
     next_url = (
         request.POST.get("next_url")
@@ -231,6 +310,7 @@ def create_session(request):
 
 
 @login_required
+@permission_required("registrations.register_participant", raise_exception=True)
 def swap_registration_view(request):
     if request.method != "POST":
         return redirect("registrations:register_search")
@@ -291,6 +371,7 @@ def swap_registration_view(request):
 
 
 @login_required
+@permission_required("registrations.view_participant", raise_exception=True)
 def export_csv(request):
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = "attachment; filename=registrations_export.csv"

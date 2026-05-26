@@ -58,6 +58,12 @@ class Participant(models.Model):
     def __str__(self):
         return f"{self.sl_number} - {self.candidate_full_name}"
 
+    class Meta:
+        permissions = [
+            ("register_participant", "Can register participants"),
+            ("change_participant_lab", "Can change participant lab allocation"),
+        ]
+
 
 class AuditLog(models.Model):
     class Action(models.TextChoices):

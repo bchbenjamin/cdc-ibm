@@ -16,6 +16,17 @@ class RegistrationForm(forms.Form):
         self.fields["lab_override"].queryset = Lab.objects.order_by("sort_order")
 
 
+class LabChangeForm(forms.Form):
+    target_lab = forms.ModelChoiceField(queryset=Lab.objects.none())
+
+    def __init__(self, *args, current_lab=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        queryset = Lab.objects.order_by("sort_order")
+        if current_lab is not None:
+            queryset = queryset.exclude(pk=current_lab.pk)
+        self.fields["target_lab"].queryset = queryset
+
+
 class SessionForm(forms.ModelForm):
     class Meta:
         model = Session
