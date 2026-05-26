@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <title>{% block title %}CDC Registration{% endblock %}</title>
   <link rel="icon" href="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/event/default/24px.svg">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700&display=swap">
@@ -16,28 +17,30 @@
       <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/event/default/24px.svg" alt="">
       <span>CDC Registration</span>
     </div>
-    <nav class="nav-actions">
-      <a class="nav-link" href="{% url 'registrations:dashboard' %}">
-        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/space_dashboard/default/24px.svg" alt="">
-        Dashboard
-      </a>
-      <a class="nav-link" href="{% url 'registrations:import_csv' %}">
-        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">
-        Import
-      </a>
-      <a class="nav-link" href="{% url 'registrations:register_search' %}">
-        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/badge/default/24px.svg" alt="">
-        Register
-      </a>
-      <a class="nav-link" href="{% url 'registrations:export_csv' %}">
-        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/download/default/24px.svg" alt="">
-        Export
-      </a>
-      <a class="nav-link" href="{% url 'admin:index' %}">
-        <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/admin_panel_settings/default/24px.svg" alt="">
-        Admin
-      </a>
-    </nav>
+    {% if request.user.is_authenticated %}
+      <nav class="nav-actions">
+        <a class="nav-link" href="{% url 'registrations:dashboard' %}">
+          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/space_dashboard/default/24px.svg" alt="">
+          Dashboard
+        </a>
+        <a class="nav-link" href="{% url 'registrations:import_csv' %}">
+          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">
+          Import
+        </a>
+        <a class="nav-link" href="{% url 'registrations:register_search' %}">
+          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/badge/default/24px.svg" alt="">
+          Register
+        </a>
+        <a class="nav-link" href="{% url 'registrations:export_csv' %}">
+          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/download/default/24px.svg" alt="">
+          Export
+        </a>
+        <a class="nav-link" href="{% url 'admin:index' %}">
+          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/admin_panel_settings/default/24px.svg" alt="">
+          Admin
+        </a>
+      </nav>
+    {% endif %}
     <div class="user-area">
       {% if request.user.is_authenticated %}
         <span class="user-chip">{{ request.user.username }}</span>
