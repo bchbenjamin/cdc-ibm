@@ -61,8 +61,8 @@
       <small class="muted">Full labs can be overridden with a swap.</small>
     </label>
     <div class="button-row">
-      <md-filled-button type="submit">Register</md-filled-button>
-      <md-outlined-button type="button" onclick="location.href='{% url 'registrations:register_search' %}'">Back</md-outlined-button>
+      <button class="button button-filled" type="submit">Register</button>
+      <a class="button button-outlined" href="{% url 'registrations:register_search' %}">Back</a>
     </div>
   </form>
 </section>

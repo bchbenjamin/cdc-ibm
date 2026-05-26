@@ -13,11 +13,11 @@
   {% if job.status != 'complete' %}
     <form method="post" class="button-row">
       {% csrf_token %}
-      <md-filled-button type="submit">Process next chunk</md-filled-button>
+      <button class="button button-filled" type="submit">Process next chunk</button>
     </form>
   {% else %}
     <div class="button-row">
-      <md-outlined-button type="button" onclick="location.href='{% url 'registrations:register_search' %}'">Go to registration</md-outlined-button>
+      <a class="button button-outlined" href="{% url 'registrations:register_search' %}">Go to registration</a>
     </div>
   {% endif %}
 </section>

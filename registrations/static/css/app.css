@@ -72,28 +72,66 @@ a {
 button,
 input,
 select,
-textarea,
-md-filled-button,
-md-outlined-button,
-md-tonal-button,
-md-text-button {
+textarea {
   font: inherit;
 }
 
-md-filled-button {
-  --md-filled-button-container-color: var(--md-sys-color-primary);
-  --md-filled-button-label-text-color: var(--md-sys-color-on-primary);
-  --md-filled-button-container-shape: 999px;
-  --md-filled-button-container-height: 44px;
-  --md-filled-button-label-text-weight: 700;
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 84px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    color 150ms ease,
+    transform 120ms ease;
 }
 
-md-outlined-button {
-  --md-outlined-button-outline-color: var(--md-sys-color-outline);
-  --md-outlined-button-label-text-color: var(--md-sys-color-primary);
-  --md-outlined-button-container-shape: 999px;
-  --md-outlined-button-container-height: 44px;
-  --md-outlined-button-label-text-weight: 700;
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--state-focus);
+  outline-offset: 2px;
+}
+
+.button-filled {
+  color: var(--md-sys-color-on-primary);
+  background: var(--md-sys-color-primary);
+  box-shadow: var(--elevation-1);
+}
+
+.button-filled:hover {
+  box-shadow: var(--elevation-2);
+}
+
+.button-outlined {
+  color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-outline);
+  background: transparent;
+}
+
+.button-outlined:hover {
+  border-color: var(--md-sys-color-primary);
+  background: var(--state-hover);
+}
+
+.button-compact {
+  min-height: 38px;
+  min-width: 64px;
+  padding: 0 14px;
 }
 
 .icon {
@@ -187,8 +225,7 @@ md-outlined-button {
   margin: 0;
 }
 
-.nav-button,
-.link-button {
+.nav-button {
   min-height: 38px;
   padding: 0 14px;
   border: 1px solid var(--md-sys-color-outline);
@@ -205,7 +242,7 @@ md-outlined-button {
 }
 
 .nav-button:hover,
-.link-button:hover {
+.nav-button:hover {
   background: var(--state-hover);
   border-color: var(--md-sys-color-primary);
 }
@@ -578,9 +615,7 @@ p:last-child {
   }
 
   .button-row,
-  .button-row md-filled-button,
-  .button-row md-outlined-button,
-  .button-row .link-button {
+  .button-row .button {
     width: 100%;
   }
 }

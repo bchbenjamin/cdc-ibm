@@ -7,8 +7,8 @@
     <p class="muted">Manage CSV imports, assign labs, and monitor session capacity.</p>
   </div>
   <div class="hero-actions">
-    <md-filled-button type="button" onclick="location.href='{% url 'registrations:register_search' %}'">Start registration</md-filled-button>
-    <md-outlined-button type="button" onclick="location.href='{% url 'registrations:import_csv' %}'">Import CSV</md-outlined-button>
+    <a class="button button-filled" href="{% url 'registrations:register_search' %}">Start registration</a>
+    <a class="button button-outlined" href="{% url 'registrations:import_csv' %}">Import CSV</a>
   </div>
 </section>
 
@@ -53,7 +53,7 @@
 <section class="card">
   <h2>No sessions available</h2>
   <p class="muted">Create the first session to start registering participants.</p>
-  <md-filled-button type="button" onclick="location.href='{% url 'registrations:create_session' %}'">Create session</md-filled-button>
+  <a class="button button-filled" href="{% url 'registrations:create_session' %}">Create session</a>
 </section>
 {% endif %}
 {% endblock %}

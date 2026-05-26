@@ -8,7 +8,7 @@
       <span>Search by Sl # or name</span>
       <input type="text" name="q" value="{{ query }}" placeholder="Type Sl # or candidate name">
     </label>
-    <md-filled-button type="submit">Search</md-filled-button>
+    <button class="button button-filled" type="submit">Search</button>
   </form>
 </section>
 
@@ -29,7 +29,7 @@
           {% else %}
             <span class="pill warning">Pending</span>
           {% endif %}
-          <a class="link-button" href="{% url 'registrations:register_detail' participant.id %}">Open</a>
+          <a class="button button-outlined button-compact" href="{% url 'registrations:register_detail' participant.id %}">Open</a>
         </div>
       </div>
       {% endfor %}
