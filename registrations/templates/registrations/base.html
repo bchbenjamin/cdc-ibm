@@ -18,20 +18,24 @@
     </div>
     {% if request.user.is_authenticated %}
       <nav class="nav-actions">
-        <a class="nav-link" href="{% url 'registrations:dashboard' %}">
-          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/space_dashboard/default/24px.svg" alt="">
-          Dashboard
-        </a>
+        {% if request.user.is_staff or perms.registrations.register_participant %}
+          <a class="nav-link" href="{% url 'registrations:dashboard' %}">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/space_dashboard/default/24px.svg" alt="">
+            Dashboard
+          </a>
+        {% endif %}
         {% if perms.registrations.add_importjob %}
           <a class="nav-link" href="{% url 'registrations:import_csv' %}">
             <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/upload_file/default/24px.svg" alt="">
             Import
           </a>
         {% endif %}
-        <a class="nav-link" href="{% url 'registrations:register_search' %}">
-          <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/badge/default/24px.svg" alt="">
-          Register
-        </a>
+        {% if request.user.is_staff or perms.registrations.register_participant %}
+          <a class="nav-link" href="{% url 'registrations:register_search' %}">
+            <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/badge/default/24px.svg" alt="">
+            Register
+          </a>
+        {% endif %}
         {% if perms.registrations.view_participant %}
           <a class="nav-link" href="{% url 'registrations:export_csv' %}">
             <img class="icon" src="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/download/default/24px.svg" alt="">

@@ -38,7 +38,7 @@
     </div>
   </div>
 </section>
-{% if perms.registrations.change_participant_lab %}
+{% if can_change_lab %}
 <section class="card">
   <h2>Change lab allocation</h2>
   <form method="post" class="form-grid">
