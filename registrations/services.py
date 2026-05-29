@@ -114,7 +114,6 @@ def _open_session_queryset():
             labsession__assigned_count__lt=F("labsession__capacity"),
         )
         .exclude(labsession__started_at__isnull=False)
-        .distinct()
         .order_by("created_at")
     )
 
