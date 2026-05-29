@@ -13,7 +13,7 @@ LAB_NAMES = ["A1", "A2", "A3", "A4", "A5", "A11", "A12", "A13", "A14", "A15"]
 DEFAULT_SESSION_LABEL = "Session 1"
 DEFAULT_SESSION_TIME = time(9, 0)
 REGISTRATION_STAFF_GROUP = "Registration staff"
-LAB_COORDINATOR_GROUP = "Lab coordinator"
+LAB_COORDINATOR_GROUP = "Lab Co-ordinator"
 
 
 @receiver(post_migrate)

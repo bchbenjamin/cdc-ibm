@@ -97,6 +97,7 @@ class AuditLog(models.Model):
         REGISTERED = "registered", "Registered"
         SWAP = "swap", "Swap"
         UNREGISTERED = "unregistered", "Unregistered"
+        REJECTED = "rejected", "Rejected"
 
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
     performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)

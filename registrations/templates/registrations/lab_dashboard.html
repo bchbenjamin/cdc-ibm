@@ -57,7 +57,13 @@
               · {{ participant.session.label }} at {{ participant.session.start_time }}
             </div>
           </div>
-          <span class="pill success">{{ participant.present_absent|title }}</span>
+          <div class="button-row">
+            <span class="pill success">{{ participant.present_absent|title }}</span>
+            <form method="post" action="{% url 'registrations:reject_lab_registration' participant.id %}">
+              {% csrf_token %}
+              <button class="button button-danger" type="submit">Reject</button>
+            </form>
+          </div>
         </div>
       {% endfor %}
     </div>

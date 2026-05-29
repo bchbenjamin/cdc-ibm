@@ -246,7 +246,14 @@ def register_participant_with_lab_override(participant_id, lab_id, user, present
         if participant.registered_at:
             return {"status": "already_registered", "participant": participant}
 
-        session, _session_created = ensure_open_session_for_update()
+        session = (
+            Session.objects.select_for_update()
+            .filter(started_at__isnull=True)
+            .order_by("created_at")
+            .first()
+        )
+        if not session:
+            session = create_next_session()
 
         try:
             lab_session = LabSession.objects.select_for_update().get(
@@ -483,6 +490,51 @@ def undo_registration(participant_id, user):
             participant=participant,
             performed_by=user,
             action=AuditLog.Action.UNREGISTERED,
+        )
+        return {"status": "ok", "participant": participant}
+
+
+def reject_lab_registration(participant_id, lab, user):
+    with transaction.atomic():
+        participant = (
+            Participant.objects.select_for_update(of=("self",))
+            .select_related("lab", "session")
+            .get(pk=participant_id)
+        )
+        if not participant.registered_at:
+            return {"status": "not_registered", "participant": participant}
+        if participant.lab_id != lab.id:
+            return {"status": "wrong_lab", "participant": participant}
+
+        if participant.lab_id and participant.session_id:
+            LabSession.objects.filter(
+                session_id=participant.session_id,
+                lab_id=participant.lab_id,
+                assigned_count__gt=0,
+            ).update(assigned_count=F("assigned_count") - 1)
+            Session.objects.filter(
+                id=participant.session_id,
+                assigned_count__gt=0,
+            ).update(assigned_count=F("assigned_count") - 1)
+
+        participant.present_absent = ""
+        participant.lab = None
+        participant.session = None
+        participant.registered_by = None
+        participant.registered_at = None
+        participant.save(
+            update_fields=[
+                "present_absent",
+                "lab",
+                "session",
+                "registered_by",
+                "registered_at",
+            ]
+        )
+        AuditLog.objects.create(
+            participant=participant,
+            performed_by=user,
+            action=AuditLog.Action.REJECTED,
         )
         return {"status": "ok", "participant": participant}
 

@@ -20,6 +20,7 @@ from .services import (
     get_open_session,
     mark_lab_session_started,
     process_import_chunk,
+    reject_lab_registration,
     register_participant_auto,
     register_participant_with_lab_override,
     swap_registered_lab,
@@ -601,5 +602,30 @@ def start_lab_session(request):
         )
     else:
         messages.error(request, "Unable to mark the session as started.")
+
+    return redirect("registrations:lab_dashboard")
+
+
+@login_required
+@lab_coordinator_access_required
+def reject_lab_registration_view(request, participant_id):
+    if request.method != "POST":
+        return redirect("registrations:lab_dashboard")
+
+    lab = _lab_coordinator_lab(request.user)
+    if lab is None:
+        raise PermissionDenied
+
+    participant = get_object_or_404(Participant, pk=participant_id)
+    if participant.lab_id != lab.id:
+        raise PermissionDenied
+
+    result = reject_lab_registration(participant.id, lab, request.user)
+    if result["status"] == "ok":
+        messages.success(request, "Registration rejected.")
+    elif result["status"] == "not_registered":
+        messages.info(request, "Participant is not currently registered.")
+    else:
+        messages.error(request, "Unable to reject that registration.")
 
     return redirect("registrations:lab_dashboard")

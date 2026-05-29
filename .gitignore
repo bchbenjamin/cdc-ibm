@@ -24,3 +24,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Fake test data
+faker
