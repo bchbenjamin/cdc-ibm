@@ -1,12 +1,23 @@
 import csv
 import io
 import time
+from datetime import time as time_of_day
 
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from .models import AuditLog, ImportJob, Lab, LabSession, Participant, Session
+from .models import (
+    AuditLog,
+    ImportJob,
+    Lab,
+    LabSession,
+    Participant,
+    RegistrationConfig,
+    Session,
+)
+
+DEFAULT_SESSION_TIME = time_of_day(9, 0)
 
 REQUIRED_COLUMNS = ["SL no", "Sl #", "Zone", "Candidate Full Name"]
 
@@ -81,23 +92,128 @@ def process_import_chunk(job, chunk_size=500, time_budget_seconds=7):
     return processed_total, False
 
 
-def get_open_session_for_update():
+def get_registration_config():
+    config = RegistrationConfig.objects.order_by("id").first()
+    if not config:
+        config = RegistrationConfig.objects.create()
+    return config
+
+
+def get_session_start_quorum():
+    return get_registration_config().session_start_quorum
+
+
+def get_current_session():
+    return Session.objects.filter(started_at__isnull=True).order_by("created_at").first()
+
+
+def _open_session_queryset():
     return (
-        Session.objects.select_for_update()
-        .filter(assigned_count__lt=F("capacity"))
+        Session.objects.filter(
+            started_at__isnull=True,
+            labsession__assigned_count__lt=F("labsession__capacity"),
+        )
+        .exclude(labsession__started_at__isnull=False)
+        .distinct()
         .order_by("created_at")
-        .last()
     )
+
+
+def get_open_session():
+    return _open_session_queryset().first()
+
+
+def get_open_session_for_update():
+    return _open_session_queryset().select_for_update().first()
+
+
+def create_next_session():
+    last_session = Session.objects.select_for_update().order_by("created_at").last()
+    session_count = Session.objects.count()
+    start_time = last_session.start_time if last_session else DEFAULT_SESSION_TIME
+    return Session.objects.create(
+        label=f"Session {session_count + 1}",
+        start_time=start_time,
+    )
+
+
+def ensure_open_session_for_update():
+    session = get_open_session_for_update()
+    if session:
+        return session, False
+    return create_next_session(), True
 
 
 def get_next_lab_session_for_update(session):
     return (
         LabSession.objects.select_for_update()
-        .filter(session=session, assigned_count__lt=F("capacity"))
+        .filter(
+            session=session,
+            started_at__isnull=True,
+            assigned_count__lt=F("capacity"),
+        )
         .select_related("lab")
         .order_by("lab__sort_order")
         .first()
     )
+
+
+def mark_session_started(session, user=None):
+    now = session.started_at or timezone.now()
+    if not session.started_at:
+        session.started_at = now
+        if user and not session.started_by_id:
+            session.started_by = user
+        session.save(update_fields=["started_at", "started_by"])
+
+    lab_updates = {"started_at": now}
+    if user:
+        lab_updates["started_by"] = user
+    LabSession.objects.filter(session=session, started_at__isnull=True).update(**lab_updates)
+    return session
+
+
+def mark_lab_session_started(lab, session, user):
+    with transaction.atomic():
+        session = Session.objects.select_for_update().get(pk=session.pk)
+        if session.started_at:
+            return {"status": "session_started", "session": session}
+
+        lab_session = LabSession.objects.select_for_update().get(
+            session=session, lab=lab
+        )
+        if lab_session.started_at:
+            return {
+                "status": "already_started",
+                "session": session,
+                "lab_session": lab_session,
+            }
+
+        now = timezone.now()
+        lab_session.started_at = now
+        lab_session.started_by = user
+        lab_session.save(update_fields=["started_at", "started_by"])
+
+        started_count = LabSession.objects.filter(
+            session=session, started_at__isnull=False
+        ).count()
+        quorum = get_session_start_quorum()
+        if started_count > quorum:
+            mark_session_started(session, user)
+            return {
+                "status": "session_started_all",
+                "session": session,
+                "started_count": started_count,
+                "quorum": quorum,
+            }
+
+        return {
+            "status": "ok",
+            "session": session,
+            "lab_session": lab_session,
+            "started_count": started_count,
+            "quorum": quorum,
+        }
 
 
 def register_participant_auto(participant_id, user, present_absent):
@@ -106,9 +222,7 @@ def register_participant_auto(participant_id, user, present_absent):
         if participant.registered_at:
             return {"status": "already_registered", "participant": participant}
 
-        session = get_open_session_for_update()
-        if not session:
-            return {"status": "needs_session"}
+        session, _session_created = ensure_open_session_for_update()
 
         lab_session = get_next_lab_session_for_update(session)
         if not lab_session:
@@ -132,9 +246,7 @@ def register_participant_with_lab_override(participant_id, lab_id, user, present
         if participant.registered_at:
             return {"status": "already_registered", "participant": participant}
 
-        session = get_open_session_for_update()
-        if not session:
-            return {"status": "needs_session"}
+        session, _session_created = ensure_open_session_for_update()
 
         try:
             lab_session = LabSession.objects.select_for_update().get(
@@ -142,6 +254,9 @@ def register_participant_with_lab_override(participant_id, lab_id, user, present
             )
         except LabSession.DoesNotExist:
             return {"status": "invalid_lab"}
+
+        if lab_session.started_at:
+            return {"status": "lab_started", "session": session, "lab_session": lab_session}
 
         if lab_session.assigned_count >= lab_session.capacity:
             return {"status": "lab_full", "session": session, "lab_session": lab_session}
@@ -175,12 +290,26 @@ def swap_registration(participant_id, user, present_absent, full_lab_session_id,
         except LabSession.DoesNotExist:
             return {"status": "invalid_lab"}
 
+        if full_lab_session.started_at:
+            return {
+                "status": "lab_started",
+                "session": session,
+                "lab_session": full_lab_session,
+            }
+
         try:
             target_lab_session = LabSession.objects.select_for_update().get(
                 session=session, lab_id=target_lab_id
             )
         except LabSession.DoesNotExist:
             return {"status": "invalid_target_lab"}
+
+        if target_lab_session.started_at:
+            return {
+                "status": "target_lab_started",
+                "session": session,
+                "lab_session": target_lab_session,
+            }
 
         if target_lab_session.assigned_count >= target_lab_session.capacity:
             return {"status": "target_lab_full"}
@@ -230,6 +359,13 @@ def change_registered_lab(participant_id, target_lab_id, user):
         except LabSession.DoesNotExist:
             return {"status": "invalid_lab", "participant": participant}
 
+        if target_lab_session.started_at:
+            return {
+                "status": "target_lab_started",
+                "participant": participant,
+                "target_lab_session": target_lab_session,
+            }
+
         if target_lab_session.assigned_count >= target_lab_session.capacity:
             return {
                 "status": "target_lab_full",
@@ -262,6 +398,20 @@ def swap_registered_lab(participant_id, target_lab_id, swap_participant_id, user
             return {"status": "not_registered", "participant": participant}
         if participant.lab_id == target_lab_id:
             return {"status": "same_lab", "participant": participant}
+
+        try:
+            target_lab_session = LabSession.objects.select_for_update().get(
+                session=participant.session, lab_id=target_lab_id
+            )
+        except LabSession.DoesNotExist:
+            return {"status": "invalid_lab", "participant": participant}
+
+        if target_lab_session.started_at:
+            return {
+                "status": "target_lab_started",
+                "participant": participant,
+                "target_lab_session": target_lab_session,
+            }
 
         try:
             swap_participant = Participant.objects.select_for_update().get(

@@ -7,7 +7,7 @@ from django.db.models import F
 from django.db.models.signals import post_delete, post_migrate, post_save
 from django.dispatch import receiver
 
-from .models import Lab, LabCoordinator, LabSession, Participant, Session
+from .models import Lab, LabCoordinator, LabSession, Participant, RegistrationConfig, Session
 
 LAB_NAMES = ["A1", "A2", "A3", "A4", "A5", "A11", "A12", "A13", "A14", "A15"]
 DEFAULT_SESSION_LABEL = "Session 1"
@@ -26,6 +26,8 @@ def seed_defaults(sender, **kwargs):
 
     if not Session.objects.exists():
         Session.objects.create(label=DEFAULT_SESSION_LABEL, start_time=DEFAULT_SESSION_TIME)
+
+    RegistrationConfig.objects.get_or_create()
 
     User = get_user_model()
     if not User.objects.filter(username="admin").exists():

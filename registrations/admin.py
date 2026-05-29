@@ -1,8 +1,17 @@
 from django import forms
 from django.contrib import admin
 
-from .models import AuditLog, ImportJob, Lab, LabCoordinator, LabSession, Participant, Session
-from .services import count_csv_rows, process_import_chunk
+from .models import (
+    AuditLog,
+    ImportJob,
+    Lab,
+    LabCoordinator,
+    LabSession,
+    Participant,
+    RegistrationConfig,
+    Session,
+)
+from .services import count_csv_rows, mark_session_started, process_import_chunk
 
 
 class ImportJobAdminForm(forms.ModelForm):
@@ -77,13 +86,19 @@ class LabAdmin(admin.ModelAdmin):
 
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
-    list_display = ("label", "start_time", "capacity", "assigned_count")
+    list_display = ("label", "start_time", "capacity", "assigned_count", "started_at")
     ordering = ("created_at",)
+    actions = ["mark_session_started_action"]
+
+    @admin.action(description="Mark session started (all labs)")
+    def mark_session_started_action(self, request, queryset):
+        for session in queryset:
+            mark_session_started(session, request.user)
 
 
 @admin.register(LabSession)
 class LabSessionAdmin(admin.ModelAdmin):
-    list_display = ("lab", "session", "assigned_count", "capacity")
+    list_display = ("lab", "session", "assigned_count", "capacity", "started_at")
     list_filter = ("session",)
     ordering = ("session", "lab__sort_order")
 
@@ -119,5 +134,10 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
-    def has_change_permission(self, request, obj=None):
-        return False
+
+@admin.register(RegistrationConfig)
+class RegistrationConfigAdmin(admin.ModelAdmin):
+    list_display = ("session_start_quorum", "updated_at")
+
+    def has_add_permission(self, request):
+        return not RegistrationConfig.objects.exists()

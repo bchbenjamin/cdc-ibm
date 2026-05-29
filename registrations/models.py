@@ -15,6 +15,14 @@ class Session(models.Model):
     start_time = models.TimeField()
     capacity = models.PositiveIntegerField(default=200)
     assigned_count = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(null=True, blank=True)
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sessions_started",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -26,6 +34,14 @@ class LabSession(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
     capacity = models.PositiveIntegerField(default=20)
     assigned_count = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(null=True, blank=True)
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="lab_sessions_started",
+    )
 
     class Meta:
         unique_together = ("lab", "session")
@@ -112,3 +128,21 @@ class ImportJob(models.Model):
 
     def __str__(self):
         return f"Import {self.id} - {self.status}"
+
+
+class RegistrationConfig(models.Model):
+    session_start_quorum = models.PositiveSmallIntegerField(
+        default=3,
+        help_text=(
+            "If more than this number of labs are started, start the session for all labs."
+        ),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Registration config"
+        verbose_name_plural = "Registration config"
+
+    def __str__(self):
+        return f"Registration config ({self.session_start_quorum})"

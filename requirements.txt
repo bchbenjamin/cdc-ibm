@@ -3,3 +3,4 @@ psycopg2-binary==2.9.9
 dj-database-url==2.2.0
 whitenoise==6.6.0
 python-dotenv==1.0.1
+Faker==40.19.1

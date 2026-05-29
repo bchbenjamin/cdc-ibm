@@ -55,8 +55,8 @@
 </section>
 {% else %}
 <section class="card">
-  <h2>No sessions available</h2>
-  <p class="muted">Create the first session to start registering participants.</p>
+  <h2>No open sessions</h2>
+  <p class="muted">All sessions are at capacity or already started. Create the next session to continue registering participants.</p>
   <a class="button button-filled" href="{% url 'registrations:create_session' %}">Create session</a>
 </section>
 {% endif %}

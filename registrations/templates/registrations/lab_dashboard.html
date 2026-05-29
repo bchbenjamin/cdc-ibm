@@ -8,6 +8,28 @@
   </div>
 </section>
 
+{% if current_lab_session %}
+<section class="card">
+  <h2>Current session</h2>
+  <div class="lab-meta">
+    {{ current_lab_session.session.label }} · {{ current_lab_session.session.start_time }}
+  </div>
+  {% if current_lab_session.started_at %}
+    <div class="pill success">Started</div>
+  {% else %}
+    <form method="post" action="{% url 'registrations:start_lab_session' %}" class="button-row">
+      {% csrf_token %}
+      <button class="button button-filled" type="submit">Mark session started</button>
+    </form>
+  {% endif %}
+</section>
+{% else %}
+<section class="card">
+  <h2>No active session</h2>
+  <p class="muted">There is no session available to start right now.</p>
+</section>
+{% endif %}
+
 <section class="card">
   <h2>Batches</h2>
   <div class="lab-grid">

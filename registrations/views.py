@@ -16,6 +16,9 @@ from .services import (
     build_export_rows,
     change_registered_lab,
     count_csv_rows,
+    get_current_session,
+    get_open_session,
+    mark_lab_session_started,
     process_import_chunk,
     register_participant_auto,
     register_participant_with_lab_override,
@@ -80,6 +83,16 @@ def portal_access_required(view_func):
     return wrapped
 
 
+def lab_coordinator_access_required(view_func):
+    @wraps(view_func)
+    def wrapped(request, *args, **kwargs):
+        if not _has_lab_coordinator_access(request.user):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
+
+
 def favicon(request):
     return redirect(
         "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/event/default/24px.svg"
@@ -95,7 +108,7 @@ def dashboard(request):
     total = Participant.objects.count()
     registered = Participant.objects.filter(registered_at__isnull=False).count()
     pending = total - registered
-    current_session = Session.objects.order_by("created_at").last()
+    current_session = get_open_session()
     lab_status = []
     if current_session:
         lab_status = (
@@ -203,6 +216,14 @@ def register_detail(request, participant_id):
                         return redirect(
                             "registrations:register_detail", participant_id=participant.id
                         )
+                    if result["status"] == "target_lab_started":
+                        messages.error(
+                            request,
+                            "The target lab has already started for this session.",
+                        )
+                        return redirect(
+                            "registrations:register_detail", participant_id=participant.id
+                        )
                     if result["status"] == "target_lab_full":
                         target_lab_session = result["target_lab_session"]
                         swap_participants = Participant.objects.filter(
@@ -251,6 +272,14 @@ def register_detail(request, participant_id):
                         return redirect(
                             "registrations:register_detail", participant_id=participant.id
                         )
+                    if result["status"] == "target_lab_started":
+                        messages.error(
+                            request,
+                            "The target lab has already started for this session.",
+                        )
+                        return redirect(
+                            "registrations:register_detail", participant_id=participant.id
+                        )
                 messages.error(request, "Unable to complete lab swap.")
             elif action == "undo_registration":
                 if not _has_undo_registration_access(request.user):
@@ -285,10 +314,6 @@ def register_detail(request, participant_id):
                 result = register_participant_with_lab_override(
                     participant.id, lab_override.id, request.user, present_absent
                 )
-                if result["status"] == "needs_session":
-                    return redirect(
-                        f"{reverse('registrations:create_session')}?next={request.path}"
-                    )
                 if result["status"] == "lab_full":
                     full_lab_session = result["lab_session"]
                     session = result["session"]
@@ -297,7 +322,9 @@ def register_detail(request, participant_id):
                     ).order_by("candidate_full_name")
                     available_lab_ids = (
                         LabSession.objects.filter(
-                            session=session, assigned_count__lt=F("capacity")
+                            session=session,
+                            started_at__isnull=True,
+                            assigned_count__lt=F("capacity"),
                         )
                         .exclude(lab=full_lab_session.lab)
                         .values_list("lab_id", flat=True)
@@ -320,21 +347,24 @@ def register_detail(request, participant_id):
                             "available_labs": target_labs,
                         },
                     )
-                if result["status"] == "already_registered":
+                if result["status"] == "lab_started":
+                    messages.error(
+                        request,
+                        "That lab has already started for the current session.",
+                    )
+                elif result["status"] == "already_registered":
                     messages.info(request, "Participant is already registered.")
                 elif result["status"] == "ok":
                     messages.success(request, "Participant registered.")
                     return redirect(
                         "registrations:register_detail", participant_id=participant.id
                     )
+                else:
+                    messages.error(request, "No available lab seats.")
             else:
                 result = register_participant_auto(
                     participant.id, request.user, present_absent
                 )
-                if result["status"] == "needs_session":
-                    return redirect(
-                        f"{reverse('registrations:create_session')}?next={request.path}"
-                    )
                 if result["status"] == "already_registered":
                     messages.info(request, "Participant is already registered.")
                 elif result["status"] == "ok":
@@ -399,11 +429,11 @@ def swap_registration_view(request):
     swap_participants = Participant.objects.filter(
         lab=full_lab_session.lab, session=session
     ).order_by("candidate_full_name")
-    available_lab_ids = (
-        LabSession.objects.filter(session=session, assigned_count__lt=F("capacity"))
-        .exclude(lab=full_lab_session.lab)
-        .values_list("lab_id", flat=True)
-    )
+    available_lab_ids = LabSession.objects.filter(
+        session=session,
+        started_at__isnull=True,
+        assigned_count__lt=F("capacity"),
+    ).exclude(lab=full_lab_session.lab).values_list("lab_id", flat=True)
     target_labs = Lab.objects.filter(id__in=available_lab_ids).order_by("sort_order")
 
     form = SwapForm(
@@ -426,8 +456,35 @@ def swap_registration_view(request):
             messages.success(request, "Swap completed and participant registered.")
             return redirect("registrations:register_detail", participant_id=participant_id)
         if result["status"] == "needs_session":
+            override_result = register_participant_with_lab_override(
+                participant_id,
+                target_lab.id,
+                request.user,
+                present_absent,
+            )
+            if override_result["status"] == "ok":
+                messages.success(
+                    request,
+                    "New session created. Participant registered.",
+                )
+                return redirect(
+                    "registrations:register_detail", participant_id=participant_id
+                )
+            if override_result["status"] in {"lab_full", "lab_started"}:
+                messages.error(
+                    request,
+                    "Unable to allocate that lab in the new session.",
+                )
+                return redirect(
+                    "registrations:register_detail", participant_id=participant_id
+                )
+        if result["status"] in {"lab_started", "target_lab_started"}:
+            messages.error(
+                request,
+                "That lab has already started for the current session.",
+            )
             return redirect(
-                f"{reverse('registrations:create_session')}?next={request.path}"
+                "registrations:register_detail", participant_id=participant_id
             )
         messages.error(request, "Unable to complete swap. Try again.")
 
@@ -476,6 +533,15 @@ def lab_dashboard(request):
             return redirect("registrations:dashboard")
         raise PermissionDenied
 
+    current_session = get_current_session()
+    current_lab_session = None
+    if current_session:
+        current_lab_session = (
+            LabSession.objects.filter(session=current_session, lab=lab)
+            .select_related("session")
+            .first()
+        )
+
     participants = (
         Participant.objects.filter(lab=lab, registered_at__isnull=False)
         .select_related("session")
@@ -489,5 +555,51 @@ def lab_dashboard(request):
     return render(
         request,
         "registrations/lab_dashboard.html",
-        {"lab": lab, "participants": participants, "sessions": sessions},
+        {
+            "lab": lab,
+            "participants": participants,
+            "sessions": sessions,
+            "current_session": current_session,
+            "current_lab_session": current_lab_session,
+        },
     )
+
+
+@login_required
+@lab_coordinator_access_required
+def start_lab_session(request):
+    if request.method != "POST":
+        return redirect("registrations:lab_dashboard")
+
+    lab = _lab_coordinator_lab(request.user)
+    if lab is None:
+        raise PermissionDenied
+
+    session = get_current_session()
+    if not session:
+        messages.info(request, "No active session is available to start.")
+        return redirect("registrations:lab_dashboard")
+
+    result = mark_lab_session_started(lab, session, request.user)
+    status = result["status"]
+    if status == "ok":
+        messages.success(
+            request,
+            f"{session.label} marked as started for lab {lab.name}.",
+        )
+    elif status == "already_started":
+        messages.info(
+            request,
+            f"{session.label} is already marked as started for lab {lab.name}.",
+        )
+    elif status == "session_started":
+        messages.info(request, f"{session.label} is already started for all labs.")
+    elif status == "session_started_all":
+        messages.success(
+            request,
+            f"Quorum reached. {session.label} started for all labs.",
+        )
+    else:
+        messages.error(request, "Unable to mark the session as started.")
+
+    return redirect("registrations:lab_dashboard")

@@ -3,7 +3,7 @@
 {% block content %}
 <section class="card">
   <h1>New session required</h1>
-  <p class="muted">The current session is at capacity. Create the next session to continue registering participants.</p>
+  <p class="muted">No open sessions are available. Create the next session to continue registering participants.</p>
   <form method="post" class="form-grid">
     {% csrf_token %}
     <input type="hidden" name="next_url" value="{{ next_url }}">
